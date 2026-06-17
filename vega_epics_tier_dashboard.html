@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Vega Epics — GTM Tier Dashboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f4f5f7; color: #172b4d; font-size: 14px; }
+  header { background: #0052cc; color: white; padding: 18px 28px; }
+  header h1 { font-size: 20px; font-weight: 700; }
+  header p { font-size: 12px; opacity: .75; margin-top: 3px; }
+  .top { display: flex; gap: 16px; padding: 16px 28px; flex-wrap: wrap; align-items: flex-start; }
+  .summary-cards { display: flex; gap: 10px; flex-wrap: wrap; }
+  .card { background: #fff; border: 1px solid #dfe1e6; border-radius: 8px; padding: 12px 22px; min-width: 110px; text-align: center; }
+  .card .num { font-size: 28px; font-weight: 700; }
+  .card .lbl { font-size: 11px; color: #5e6c84; text-transform: uppercase; letter-spacing: .04em; margin-top: 2px; }
+  .card.t1 .num { color: #bf2600; }
+  .card.t2 .num { color: #ff8b00; }
+  .card.t3 .num { color: #36b37e; }
+  .card.na .num { color: #6554c0; }
+  .card.unset .num { color: #97a0af; }
+  .note { font-size: 12px; color: #5e6c84; background: #fff; border: 1px solid #dfe1e6; border-radius: 6px; padding: 10px 14px; line-height: 1.6; }
+  .note strong { color: #172b4d; }
+  .controls { display: flex; gap: 10px; align-items: center; padding: 12px 28px; background: #fff; border-bottom: 1px solid #dfe1e6; flex-wrap: wrap; }
+  .controls input { border: 1px solid #dfe1e6; border-radius: 4px; padding: 7px 12px; font-size: 13px; width: 220px; outline: none; }
+  .controls input:focus { border-color: #0052cc; }
+  select { border: 1px solid #dfe1e6; border-radius: 4px; padding: 7px 10px; font-size: 13px; outline: none; cursor: pointer; background: #fff; }
+  .warning-banner { background: #fffae6; border: 1px solid #ffe380; border-radius: 6px; padding: 10px 16px; margin: 12px 28px 0; font-size: 13px; color: #974f0c; display: none; }
+  .table-wrap { padding: 0 28px 32px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #dfe1e6; border-radius: 6px; overflow: hidden; margin-top: 14px; }
+  th { background: #f4f5f7; text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 700; color: #5e6c84; text-transform: uppercase; letter-spacing: .04em; border-bottom: 2px solid #dfe1e6; cursor: pointer; white-space: nowrap; user-select: none; }
+  th:hover { background: #ebecf0; }
+  td { padding: 9px 14px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f4f5f7; }
+  .key a { color: #0052cc; font-weight: 600; text-decoration: none; font-size: 12px; white-space: nowrap; }
+  .key a:hover { text-decoration: underline; }
+  .summary-cell { max-width: 310px; line-height: 1.45; font-size: 13px; }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 12px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .status-Done { background: #e3fcef; color: #006644; }
+  .status-In-Progress { background: #fff0b3; color: #974f0c; }
+  .status-To-Do { background: #ffebe6; color: #bf2600; }
+  .status-Ready-to-Deploy { background: #e6f4ff; color: #0052cc; }
+  .status-Generate-Release-Assets { background: #f3f0ff; color: #403294; }
+  .status-On-Hold { background: #f4f5f7; color: #42526e; }
+  .status-other { background: #f4f5f7; color: #42526e; }
+  .tier-Tier-1 { background: #ffebe6; color: #bf2600; border: 1px solid #ff5630; }
+  .tier-Tier-2 { background: #fff0b3; color: #974f0c; border: 1px solid #ff8b00; }
+  .tier-Tier-3 { background: #e3fcef; color: #006644; border: 1px solid #36b37e; }
+  .tier-NA { background: #f3f0ff; color: #403294; border: 1px solid #998dd9; }
+  .tier-NOT-SET { background: #f4f5f7; color: #97a0af; border: 1px solid #c1c7d0; font-style: italic; }
+  .orig-tag { font-size: 10px; color: #97a0af; margin-left: 4px; font-style: normal; }
+  .proj-badge { background: #e6f0ff; color: #0052cc; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 3px; white-space: nowrap; }
+  .empty { text-align: center; padding: 40px; color: #8993a4; font-size: 15px; }
+  .group-header td { background: #f4f5f7; padding: 8px 14px; font-weight: 700; font-size: 11px; color: #5e6c84; text-transform: uppercase; letter-spacing: .05em; }
+  .count-pill { background: #dfe1e6; color: #42526e; border-radius: 10px; padding: 1px 7px; font-size: 11px; margin-left: 6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🌟 Vega (78) Release — Epics by Go-To-Market Tier</h1>
+  <p>Fix Version: 78 Vega &nbsp;|&nbsp; Tiers 4 &amp; 5 collapsed into Tier 3 &nbsp;|&nbsp; Last refreshed: June 17, 2026</p>
+</header>
+<div class="top">
+  <div class="summary-cards" id="cards"></div>
+  <div class="note">
+    <strong>Normalization rule:</strong> Original Tier 4 and Tier 5 values are treated as <strong>Tier 3</strong>.<br>
+    Where collapsed, the original value is shown in grey. <strong>N/A</strong> = Not Customer Facing.
+  </div>
+</div>
+<div class="warning-banner" id="warningBanner"></div>
+<div class="controls">
+  <input type="text" id="search" placeholder="🔍  Search key, summary, assignee…" oninput="render()">
+  <select id="filterTier" onchange="render()">
+    <option value="">All Tiers</option>
+    <option value="Tier 1">Tier 1</option>
+    <option value="Tier 2">Tier 2</option>
+    <option value="Tier 3">Tier 3</option>
+    <option value="N/A - Not Customer Facing">N/A — Not Customer Facing</option>
+    <option value="NOT SET">⚠ Not Set</option>
+  </select>
+  <select id="filterProject" onchange="render()"><option value="">All Projects</option></select>
+  <select id="filterStatus" onchange="render()"><option value="">All Statuses</option></select>
+  <select id="groupBy" onchange="render()">
+    <option value="tier">Group by Tier</option>
+    <option value="project">Group by Project</option>
+    <option value="status">Group by Status</option>
+    <option value="none">No Grouping</option>
+  </select>
+</div>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th onclick="sortBy('key')">Key ↕</th>
+        <th onclick="sortBy('project')">Project ↕</th>
+        <th onclick="sortBy('summary')">Summary ↕</th>
+        <th onclick="sortBy('status')">Status ↕</th>
+        <th onclick="sortBy('tier')">GTM Tier ↕</th>
+        <th onclick="sortBy('assignee')">Assignee ↕</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+<script>
+const ALL = [{"key": "ACC-35079", "project": "ACC", "project_name": "Accounting", "summary": "Global Aging Buckets Date Toggle", "status": "In Progress", "tier": "Tier 3", "tier_original": "Tier 3", "assignee": "Pratik More", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/ACC-35079"}, {"key": "ACC-35059", "project": "ACC", "project_name": "Accounting", "summary": "Custom GP (DuraServ)", "status": "In Progress", "tier": null, "tier_original": null, "assignee": "Gene Jaeger", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/ACC-35059"}, {"key": "ACC-35613", "project": "ACC", "project_name": "Accounting", "summary": "Upgrade Txn Hub Pages to Anvil 2 UI", "status": "Ready to Deploy", "tier": "Tier 3", "tier_original": "Tier 3", "assignee": "Pratik More", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/ACC-35613"}, {"key": "ACC-35545", "project": "ACC", "project_name": "Accounting", "summary": "Credit Memo Enhancements_FY27Q2_78Vega", "status": "Ready to Deploy", "tier": "Tier 2", "tier_original": "Tier 2", "assignee": "Unassigned", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/ACC-35545"}, {"key": "ACC-35462", "project": "ACC", "project_name": "Accounting", "summary": "Store GL Balance into Monolith & Use it on the Pages to display AR Values", "status": "Ready to Deploy", "tier": "Tier 2", "tier_original": "Tier 2", "assignee": "Pratik More", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/ACC-35462"}, {"key": "ACC-35081", "project": "ACC", "project_name": "Accounting", "summary": "Dynamic Quickfilters on Txn Hub Pages", "status": "Ready to Deploy", "tier": "Tier 3", "tier_original": "Tier 3", "assignee": "Pratik More", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/ACC-35081"}, {"key": "ACC-34714", "project": "ACC", "project_name": "Accounting", "summary": "Project Financials Forecasting", "status": "Ready to Deploy", "tier": "Tier 2", "tier_original": "Tier 2", "assignee": "Unassigned", "fix_versions": ["78 Vega", "NextRelease-MFE-78vega"], "url": "https://servicetitan.atlassian.net/browse/ACC-34714"}, {"key": "ACC-34226", "project": "ACC", "project_name": "Accounting", "summary": "[ACC] TitanCard MVP Expense Management", "status": "Ready to Deploy", "tier": "Tier 1", "tier_original": "Tier 1", "assignee": "Unassigned", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/ACC-34226"}, {"key": "DIS-25883", "project": "DIS", "project_name": "Dispatch", "summary": "78 Vega Bug Bounty", "status": "Done", "tier": null, "tier_original": null, "assignee": "Ani Hakobyan", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/DIS-25883"}, {"key": "DIS-24992", "project": "DIS", "project_name": "Dispatch", "summary": "[Custom Jobs Tray Tabs] Epic 6: Full Filter Builder + Per-Tab Column Configuration", "status": "Done", "tier": null, "tier_original": null, "assignee": "Scott Hein", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/DIS-24992"}, {"key": "DIS-24960", "project": "DIS", "project_name": "Dispatch", "summary": "[Custom Jobs Tray Tabs] Epic 5: Manage Tabs \u2014 Visibility, Reorder, Delete, Reset", "status": "Done", "tier": null, "tier_original": null, "assignee": "Mikhail Aronov", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/DIS-24960"}, {"key": "DIS-24941", "project": "DIS", "project_name": "Dispatch", "summary": "[Custom Jobs Tray Tabs] Epic 4: Hero Flow \u2014 Save a Custom Tab from Current Filters", "status": "Done", "tier": null, "tier_original": null, "assignee": "Scott Hein", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/DIS-24941"}, {"key": "DIS-24903", "project": "DIS", "project_name": "Dispatch", "summary": "[Custom Jobs Tray Tabs] Epic 3: Foundation \u2014 Module Fork, Flag Gate, System-Tab Parity via Data-Driven Runtime", "status": "Done", "tier": null, "tier_original": null, "assignee": "Scott Hein", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/DIS-24903"}, {"key": "DIS-24891", "project": "DIS", "project_name": "Dispatch", "summary": "[Custom Jobs Tray Tabs] Epic 2: Unified Count Query, Generic Tab Data Repository, LUE Predicate Parity", "status": "Done", "tier": null, "tier_original": null, "assignee": "Scott Hein", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/DIS-24891"}, {"key": "DIS-24884", "project": "DIS", "project_name": "Dispatch", "summary": "[Custom Jobs Tray Tabs] Epic 1: Foundation \u2014 Contracts, Storage, and System Tab Defaults", "status": "Done", "tier": null, "tier_original": null, "assignee": "Scott Hein", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/DIS-24884"}, {"key": "DIS-23117", "project": "DIS", "project_name": "Dispatch", "summary": "Project & Feature Cleanup, Consolidation, and Naming Standardization", "status": "Done", "tier": "Tier 3", "tier_original": "Tier 5", "assignee": "Ani Hakobyan", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/DIS-23117"}, {"key": "DIS-25623", "project": "DIS", "project_name": "Dispatch", "summary": "Revamp appointment duration auto-adjustment: guardrails, smart stops, dispatcher visibility", "status": "Ready to Deploy", "tier": "Tier 3", "tier_original": "Tier 3", "assignee": "Ani Hakobyan", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/DIS-25623"}, {"key": "DIS-24692", "project": "DIS", "project_name": "Dispatch", "summary": "78 Vega - (Customer Notifications) Reminder Notifications - Rules-Based Configuration", "status": "Ready to Deploy", "tier": "Tier 2", "tier_original": "Tier 2", "assignee": "Tif Pun", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/DIS-24692"}, {"key": "DIS-24623", "project": "DIS", "project_name": "Dispatch", "summary": "Drag-and-Drop Reordering for Teams Management", "status": "Ready to Deploy", "tier": "Tier 3", "tier_original": "Tier 3", "assignee": "Unassigned", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/DIS-24623"}, {"key": "DIS-24516", "project": "DIS", "project_name": "Dispatch", "summary": "[FY27 FTK][Pillar 2 Activity Lines][Post MVP] Epic 3: Activity Block Rendering for Condensed Board View", "status": "Ready to Deploy", "tier": null, "tier_original": null, "assignee": "Egor Cravtov", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/DIS-24516"}, {"key": "DIS-24081", "project": "DIS", "project_name": "Dispatch", "summary": "(78 Vega) Dispatching Experience Improvements", "status": "Ready to Deploy", "tier": "Tier 3", "tier_original": "Tier 4", "assignee": "Scott Burns", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/DIS-24081"}, {"key": "DIS-23383", "project": "DIS", "project_name": "Dispatch", "summary": "Phase 1: Technician Skills Improvements", "status": "Ready to Deploy", "tier": "Tier 2", "tier_original": "Tier 2", "assignee": "Jimmy Huynh", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/DIS-23383"}, {"key": "EST-10573", "project": "EST", "project_name": "Estimates", "summary": "Contracts: Conditional Logic + Calculated Fields", "status": "Done", "tier": "Tier 2", "tier_original": "Tier 2", "assignee": "Jamie Pillitteri", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/EST-10573"}, {"key": "EST-11580", "project": "EST", "project_name": "Estimates", "summary": "Estimate entity isolation (78v)", "status": "Ready to Deploy", "tier": "Tier 3", "tier_original": "Tier 5", "assignee": "Unassigned", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/EST-11580"}, {"key": "EST-10649", "project": "EST", "project_name": "Estimates", "summary": "Findings V2: Estimates workflow", "status": "Ready to Deploy", "tier": "Tier 2", "tier_original": "Tier 2", "assignee": "Anush Hakhverdyan", "fix_versions": ["78 Vega", "79 Wasat"], "url": "https://servicetitan.atlassian.net/browse/EST-10649"}, {"key": "WMA-36946", "project": "WMA", "project_name": "Field Mobile App", "summary": "FMA Forms architectural improvements", "status": "Done", "tier": "N/A - Not Customer Facing", "tier_original": "N/A - Not Customer Facing", "assignee": "David Vennikov", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/WMA-36946"}, {"key": "FIN-17246", "project": "FIN", "project_name": "Financing", "summary": "[GA] Affirm Financing Integration - Phase 2", "status": "In Progress", "tier": "Tier 1", "tier_original": "Tier 1", "assignee": "Unassigned", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/FIN-17246"}, {"key": "FIN-17263", "project": "FIN", "project_name": "Financing", "summary": "Support multiple rate sheets on a single BU [GA]", "status": "Done", "tier": "Tier 2", "tier_original": "Tier 2", "assignee": "Unassigned", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/FIN-17263"}, {"key": "FAM-11001", "project": "FAM", "project_name": "Forms and Media", "summary": "Smart Field Expansion", "status": "Ready to Deploy", "tier": "Tier 3", "tier_original": "Tier 3", "assignee": "Jason Fu", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/FAM-11001"}, {"key": "FAM-10878", "project": "FAM", "project_name": "Forms and Media", "summary": "Doc Intel Q2 - Semantic Search", "status": "Ready to Deploy", "tier": "Tier 2", "tier_original": "Tier 2", "assignee": "Unassigned", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/FAM-10878"}, {"key": "GS-3979", "project": "GS", "project_name": "Global Search", "summary": "Equipment Search: Enable Asset Number (assetNumber) as a Queryable Field", "status": "Ready to Deploy", "tier": "Tier 3", "tier_original": "Tier 3", "assignee": "Andy Nguyen", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/GS-3979"}, {"key": "INV-19034", "project": "INV", "project_name": "Inventory", "summary": "[Duraserv] Various INV and purchasing enhancements", "status": "Ready to Deploy", "tier": "Tier 3", "tier_original": "Tier 3", "assignee": "Vivek Bajpai", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/INV-19034"}, {"key": "JBCE-3662", "project": "JBCE", "project_name": "Job Booking & Contact Experience", "summary": "Bring parity between the old playback modal and the new VA4ALL playback drawer", "status": "Ready to Deploy", "tier": "Tier 3", "tier_original": "Tier 3", "assignee": "Matthew Kronyak", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/JBCE-3662"}, {"key": "MAXAI-1", "project": "MAXAI", "project_name": "MAX AI", "summary": "Max Homepage - Phase 1 [June]", "status": "In Progress", "tier": "Tier 3", "tier_original": "Tier 3", "assignee": "Juliette Armour-Wilson", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/MAXAI-1"}, {"key": "MRK-12064", "project": "MRK", "project_name": "Marketing Autopilot", "summary": "Demand Orchestration \u2014 Recommendation API", "status": "Ready to Deploy", "tier": "N/A - Not Customer Facing", "tier_original": "N/A - Not Customer Facing", "assignee": "Nikita Plesovskikh", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/MRK-12064"}, {"key": "MEM-17567", "project": "MEM", "project_name": "Memberships", "summary": "Service Agreement - Edit Business Unit on Activated Agreements", "status": "Ready to Deploy", "tier": "Tier 2", "tier_original": "Tier 2", "assignee": "Unassigned", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/MEM-17567"}, {"key": "MEM-16682", "project": "MEM", "project_name": "Memberships", "summary": "Editing Active Service Agreements (Non-SLR)", "status": "Ready to Deploy", "tier": "Tier 3", "tier_original": "Tier 3", "assignee": "Evan Smith", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/MEM-16682"}, {"key": "MEM-16458", "project": "MEM", "project_name": "Memberships", "summary": "SA - Adding CommHub to Service Agreements", "status": "Ready to Deploy", "tier": "Tier 3", "tier_original": "Tier 3", "assignee": "Unassigned", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/MEM-16458"}, {"key": "MEM-16018", "project": "MEM", "project_name": "Memberships", "summary": "SA - Document Editing", "status": "Ready to Deploy", "tier": "Tier 3", "tier_original": "Tier 3", "assignee": "Roy Tinker", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/MEM-16018"}, {"key": "OPT-8198", "project": "OPT", "project_name": "Optimus", "summary": "Dispatch Pro - Extend Scheduling Window (DP Days up to 2 years)", "status": "In Progress", "tier": "Tier 2", "tier_original": "Tier 2", "assignee": "Andrei Sevostianov", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/OPT-8198"}, {"key": "OPT-8462", "project": "OPT", "project_name": "Optimus", "summary": "Troubleshoot Assistant Improvements (Vega)", "status": "Done", "tier": null, "tier_original": null, "assignee": "Andrei Sevostianov", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/OPT-8462"}, {"key": "OPT-8443", "project": "OPT", "project_name": "Optimus", "summary": "Dispatch Pro Utilization Improvements (Vega)", "status": "Done", "tier": null, "tier_original": null, "assignee": "Andrei Sevostianov", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/OPT-8443"}, {"key": "PYB-1597", "project": "PYB", "project_name": "Payables", "summary": "AP Approval Workflows - EA", "status": "Done", "tier": "Tier 2", "tier_original": "Tier 2", "assignee": "Unassigned", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/PYB-1597"}, {"key": "PYB-2546", "project": "PYB", "project_name": "Payables", "summary": "Ramp Expense Mgmt - PP", "status": "Ready to Deploy", "tier": "Tier 2", "tier_original": "Tier 2", "assignee": "Unassigned", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/PYB-2546"}, {"key": "PYB-1600", "project": "PYB", "project_name": "Payables", "summary": "Ramp Expense Management Integration Private Preview", "status": "Ready to Deploy", "tier": null, "tier_original": null, "assignee": "Unassigned", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/PYB-1600"}, {"key": "RTC-11429", "project": "RTC", "project_name": "Real-Time Communications", "summary": "Transcription Platform: Multi-Surface Delivery (Q2 + ongoing)", "status": "Done", "tier": "N/A - Not Customer Facing", "tier_original": "N/A - Not Customer Facing", "assignee": "Jason Couture", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/RTC-11429"}, {"key": "RTC-10283", "project": "RTC", "project_name": "Real-Time Communications", "summary": "[M1] Telecom Admin App: New Standalone App with Telecom Global Admin", "status": "Ready to Deploy", "tier": "N/A - Not Customer Facing", "tier_original": "N/A - Not Customer Facing", "assignee": "Dmitry Sergeev", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/RTC-10283"}, {"key": "RTC-6555", "project": "RTC", "project_name": "Real-Time Communications", "summary": "[M2] Telecom Admin App: Tenant Level Admin Panel", "status": "Ready to Deploy", "tier": "N/A - Not Customer Facing", "tier_original": "N/A - Not Customer Facing", "assignee": "Dmitry Sergeev", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/RTC-6555"}, {"key": "EQ-2876", "project": "EQ", "project_name": "Equipment", "summary": "Maintenance materials on location equipment", "status": "Ready to Deploy", "tier": "Tier 3", "tier_original": "Tier 3", "assignee": "Unassigned", "fix_versions": ["78 Vega"], "url": "https://servicetitan.atlassian.net/browse/EQ-2876"}];
+const TIER_ORDER = ['Tier 1','Tier 2','Tier 3','N/A - Not Customer Facing','NOT SET'];
+const projSel = document.getElementById('filterProject');
+[...new Set(ALL.map(i=>i.project))].sort().forEach(p => {
+  const pn = ALL.find(i=>i.project===p)?.project_name||p;
+  const o = document.createElement('option'); o.value=p; o.textContent=p+' — '+pn; projSel.appendChild(o);
+});
+const statusSel = document.getElementById('filterStatus');
+[...new Set(ALL.map(i=>i.status))].sort().forEach(s => {
+  const o = document.createElement('option'); o.value=s; o.textContent=s; statusSel.appendChild(o);
+});
+function buildCards(data) {
+  const c = {'Tier 1':0,'Tier 2':0,'Tier 3':0,'N/A - Not Customer Facing':0,'NOT SET':0};
+  data.forEach(i => { const t = i.tier||'NOT SET'; c[t]=(c[t]||0)+1; });
+  document.getElementById('cards').innerHTML =
+    '<div class="card"><div class="num">'+data.length+'</div><div class="lbl">Total</div></div>'+
+    '<div class="card t1"><div class="num">'+c['Tier 1']+'</div><div class="lbl">Tier 1</div></div>'+
+    '<div class="card t2"><div class="num">'+c['Tier 2']+'</div><div class="lbl">Tier 2</div></div>'+
+    '<div class="card t3"><div class="num">'+c['Tier 3']+'</div><div class="lbl">Tier 3</div></div>'+
+    '<div class="card na"><div class="num">'+c['N/A - Not Customer Facing']+'</div><div class="lbl">N/A</div></div>'+
+    '<div class="card unset"><div class="num">'+c['NOT SET']+'</div><div class="lbl">⚠ Not Set</div></div>';
+  const b = document.getElementById('warningBanner');
+  const u = c['NOT SET'];
+  if(u>0){b.innerHTML='<strong>⚠ '+u+' epic'+(u>1?'s':'')+' have no GTM Tier assigned.</strong> Filter by "Not Set" to review.';b.style.display='block';}
+  else b.style.display='none';
+}
+let sortKey='tier',sortDir=1;
+function sortBy(k){sortKey===k?sortDir*=-1:(sortKey=k,sortDir=1);render();}
+function tierN(t){return{'Tier 1':1,'Tier 2':2,'Tier 3':3,'N/A - Not Customer Facing':4}[t]??99;}
+function getFiltered(){
+  const q=document.getElementById('search').value.toLowerCase();
+  const tf=document.getElementById('filterTier').value;
+  const pf=document.getElementById('filterProject').value;
+  const sf=document.getElementById('filterStatus').value;
+  return ALL.filter(i=>{
+    const t=i.tier||'NOT SET';
+    if(tf&&tf!==t)return false;
+    if(pf&&pf!==i.project)return false;
+    if(sf&&sf!==i.status)return false;
+    if(q&&!(i.key+' '+i.summary+' '+i.assignee).toLowerCase().includes(q))return false;
+    return true;
+  }).sort((a,b)=>{
+    if(sortKey==='tier'){const d=tierN(a.tier)-tierN(b.tier);return d!==0?d*sortDir:a.project.localeCompare(b.project);}
+    return(a[sortKey]||'').localeCompare(b[sortKey]||'')*sortDir;
+  });
+}
+function statusClass(s){const m={'Done':'Done','In Progress':'In-Progress','To Do':'To-Do','Ready to Deploy':'Ready-to-Deploy','Generate Release Assets':'Generate-Release-Assets','On Hold':'On-Hold'};return'status-'+(m[s]||'other');}
+function tierBadge(tier,original){
+  const label=tier||'NOT SET';
+  let cls=label==='Tier 1'?'tier-Tier-1':label==='Tier 2'?'tier-Tier-2':label==='Tier 3'?'tier-Tier-3':label==='N/A - Not Customer Facing'?'tier-NA':'tier-NOT-SET';
+  const display=label==='N/A - Not Customer Facing'?'N/A':label;
+  const orig=(original&&tier&&original!==tier)?'<span class="orig-tag">(was '+original+')</span>':'';
+  return'<span class="badge '+cls+'">'+display+'</span>'+orig;
+}
+function row(i){
+  return'<tr><td class="key"><a href="'+i.url+'" target="_blank">'+i.key+'</a></td>'+
+    '<td><span class="proj-badge">'+i.project+'</span></td>'+
+    '<td class="summary-cell">'+i.summary+'</td>'+
+    '<td><span class="badge '+statusClass(i.status)+'">'+i.status+'</span></td>'+
+    '<td style="white-space:nowrap">'+tierBadge(i.tier,i.tier_original)+'</td>'+
+    '<td style="white-space:nowrap;font-size:12px">'+i.assignee+'</td></tr>';
+}
+function render(){
+  const filtered=getFiltered();
+  buildCards(filtered);
+  const groupBy=document.getElementById('groupBy').value;
+  const tbody=document.getElementById('tbody');
+  if(!filtered.length){tbody.innerHTML='<tr><td colspan="6" class="empty">No epics match your filters.</td></tr>';return;}
+  let html='';
+  if(groupBy==='none'){filtered.forEach(i=>html+=row(i));}
+  else{
+    const gFn=groupBy==='tier'?(i=>i.tier||'NOT SET'):groupBy==='project'?(i=>i.project):(i=>i.status);
+    const groups={};
+    filtered.forEach(i=>{const g=gFn(i);if(!groups[g])groups[g]=[];groups[g].push(i);});
+    const keys=groupBy==='tier'?TIER_ORDER.filter(t=>groups[t]):Object.keys(groups).sort();
+    keys.forEach(g=>{
+      const label=groupBy==='project'?g+' — '+(ALL.find(i=>i.project===g)?.project_name||g):g==='N/A - Not Customer Facing'?'N/A — Not Customer Facing':g;
+      html+='<tr class="group-header"><td colspan="6">'+label+'<span class="count-pill">'+groups[g].length+'</span></td></tr>';
+      groups[g].forEach(i=>html+=row(i));
+    });
+  }
+  tbody.innerHTML=html;
+}
+render();
+</script>
+</body>
+</html>
